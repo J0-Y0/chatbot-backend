@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from .models import Chat
+from .models import Chat,Session
 from .serializers import ChatSerializer
 
 from rest_framework import status
@@ -21,8 +21,13 @@ class ChatViewSet(viewsets.ModelViewSet):
             
             # instance of chat service
             chat_service = ChatService()
-            ai_response = chat_service.ai_response(request.data['prompt'] )
+            
+            session ,_ = Session.objects.get_or_create(id=request.data['session'])   
+            history_prompt  =session.get_last_3_chats(session)
+            
+            ai_response = chat_service.ai_response(request.data['prompt'],history_prompt )
             serializer.validated_data['ai_response'] = ai_response.choices[0].message.content
+            serializer.validated_data['chat_id'] = ai_response.id
             serializer.validated_data['chat_id'] = ai_response.id
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
